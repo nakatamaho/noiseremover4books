@@ -1,0 +1,53 @@
+# build
+# docker build -t bookscan_linefix .
+# run
+# docker run --rm -it --gpus all -v /work1/bookscan_linefix:/work/bookscan_linefix bookscan_linefix:latest
+
+FROM nvidia/cuda:11.7.0-devel-ubuntu22.04
+
+#git setting
+ARG GIT_EMAIL="maho.nakata@gmail.com"
+ARG GIT_NAME="NAKATA Maho"
+
+LABEL maintainer="maho.nakata@gmail.com"
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt -y update
+RUN apt -y upgrade
+RUN apt install -y sudo
+RUN apt install -y tzdata
+# set your timezone
+ENV TZ Asia/Tokyo
+RUN echo "${TZ}" > /etc/timezone \
+  && rm /etc/localtime \
+  && ln -s /usr/share/zoneinfo/Asia/Tokyo /etc/localtime \
+  && dpkg-reconfigure -f noninteractive tzdata
+
+RUN apt install -y python3 python3-pip
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+RUN apt install -y build-essential gcc g++ gfortran libgl1-mesa-dev poppler-utils
+RUN apt install -y git wget sudo time parallel bc
+RUN apt install -y ng-common ng-cjk emacs-nox
+
+ARG DOCKER_UID=1000
+ARG DOCKER_USER=docker
+ARG DOCKER_PASSWORD=docker
+RUN useradd -u $DOCKER_UID -m $DOCKER_USER --shell /bin/bash && echo "$DOCKER_USER:$DOCKER_PASSWORD" | chpasswd && echo "$DOCKER_USER ALL=(ALL) ALL" >> /etc/sudoers
+ARG WORK=/home/$DOCKER_USER
+
+USER docker
+USER ${DOCKER_USER}
+RUN echo "\n\
+[user]\n\
+        email = ${GIT_EMAIL}\n\
+        name = ${GIT_NAME}\n\
+" > /home/$DOCKER_USER/.gitconfig
+SHELL ["/bin/bash", "-c"]
+
+RUN pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116
+RUN pip3 install opencv-python scikit-learn tdqm matplotlib
+
+
+
+
+
